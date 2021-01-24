@@ -1,0 +1,345 @@
+<html>
+	<head>
+		<script type="text/javascript">
+			var avm = {
+				floor:5,
+				elevator_cnt:5,
+				floor0:0,
+				queue0:0,
+				floor1:0,
+				queue1:0,
+				floor2:0,
+				queue2:0,
+				floor3:0,
+				queue3:0,
+				floor4:0,
+				queue4:0
+				};
+				
+			var QueueSortList;
+				
+			var elevator = [];
+			elevator[elevator.length]={ mode:"active",capacity:10,floor:0,destination:0,direction:"",count_inside:0,inside:[],transition:200};
+			elevator[elevator.length]={ mode:"pasive",capacity:10,floor:0,destination:0,direction:"",count_inside:0,inside:[],transition:200};
+			elevator[elevator.length]={ mode:"pasive",capacity:10,floor:0,destination:0,direction:"",count_inside:0,inside:[],transition:200};
+			elevator[elevator.length]={ mode:"pasive",capacity:10,floor:0,destination:0,direction:"",count_inside:0,inside:[],transition:200};
+			elevator[elevator.length]={ mode:"pasive",capacity:10,floor:0,destination:0,direction:"",count_inside:0,inside:[],transition:200};
+			var person = [];
+			
+			var time1 = null;
+			var time2 = null;
+			function Start(){
+				time1 = setInterval(function(){Login();}, 500);
+				time2 = setInterval(function(){ExitPerson();}, 1000);
+				id('StpNrun').setAttribute("onclick","fn_Finish()");
+				id('StpNrun').value="Sonucu Göster";
+			}
+			
+			function Login(){
+				var insider_Cnt = Rndm(10, 1);
+				var incntprlngt = insider_Cnt + person.length;
+				avm.floor0 += insider_Cnt;
+				avm.queue0 += insider_Cnt;
+				for(var i = person.length; i< incntprlngt; i++){
+					var dest = Rndm(4,1);
+					person[i]={Id:i,situation:"queue",floor:0,destination:dest};
+				}
+				ReportIt("</br>"+insider_Cnt +" Kişi Giriş Yaptı");
+				QueueSortList = [avm.queue0, avm.queue1, avm.queue2, avm.queue3, avm.queue4];
+				Kontrol_Thread();
+			}
+			
+			function ExitPerson(){
+				var canExitPerson=[];
+				for(var c = 0; c < person.length; c++){
+					if(person[c].situation != "queue"){
+						canExitPerson[canExitPerson.length] = person[c];
+					}
+				}
+				var k = 0;
+				var randomExitCnt = 5;
+				if(canExitPerson.length < randomExitCnt){ randomExitCnt = canExitPerson.length; }
+				var exitPrsn_Cnt = Rndm(randomExitCnt, 1);
+				for(var j = 0; j < canExitPerson.length; j++){
+					var rndmExitPrsn = Rndm(canExitPerson.length, 0);
+					canExitPerson[rndmExitPrsn].destination = 0;
+					canExitPerson[rndmExitPrsn].situation = "queue";
+					if(canExitPerson[rndmExitPrsn].floor > 0){
+						switch(person[rndmExitPrsn].floor){
+							case 1: avm.queue1 += 1; break;
+							case 2: avm.queue2 += 1; break;
+							case 3: avm.queue3 += 1; break;
+							case 4: avm.queue4 += 1; break;
+						}
+					}
+					for(var cp = 0; cp < person.length; cp++){
+						if(canExitPerson[rndmExitPrsn].Id == person[cp].Id){
+							person[cp] = canExitPerson[rndmExitPrsn];
+						}
+					}
+				}
+				for(var i = 0; i < person.length; i++){
+					if(person[i].floor == 0 && person[i].destination == 0){
+						person.splice(i,1);
+						avm.queue0 -= 1;
+						avm.floor0 -= 1;
+						k++;
+					}
+				}
+				if(k > 0){ReportIt(k +" Kişi Çıkış Yaptı");}
+				QueueSortList = [avm.queue0, avm.queue1, avm.queue2, avm.queue3, avm.queue4];
+			}
+			
+			function Elevator_Thread1(){
+				fn_FullTheElevator(0);
+				fn_ElevatorMove(0);
+			}
+			
+			function Elevator_Thread2(){
+				fn_FullTheElevator(1);
+				fn_ElevatorMove(1);
+			}
+			
+			function Elevator_Thread3(){
+				fn_FullTheElevator(2);
+				fn_ElevatorMove(2);
+			}
+			
+			function Elevator_Thread4(){
+				fn_FullTheElevator(3);
+				fn_ElevatorMove(3);
+			}
+			
+			function Elevator_Thread5(){
+				fn_FullTheElevator(4)
+				fn_ElevatorMove(4);
+			}
+			
+			function fn_ElevatorMove(elvtr){
+				var elevator_inside = [];
+				var elvtr_floor = elevator[elvtr].floor;
+				elevator_inside = elevator[elvtr].inside;
+				if(elvtr_floor == 0){
+					elevator[elvtr].direction = "Up";
+					for(var f = 1; f < 5; f++){
+						elevator[elvtr].destination = f;
+						ReportIt((elvtr + 1) + ". Asansör Yukarı Doğru Hareket Ediyor, Hedef:"+ f + ". Kat");
+						//setTimeout(function(){ fn_ElevatorGetFloor(f, elvtr); }, elevator[elvtr].transition);
+						fn_ElevatorGetFloor(f, elvtr);
+					}
+				}
+				else if(elvtr_floor == 4){
+					elevator[elvtr].direction = "Down";
+					for(var f = 3; f >= 0; f--){
+						elevator[elvtr].destination = f;
+						ReportIt((elvtr + 1) + ". Asansör Aşağı Doğru Hareket Ediyor, Hedef:"+ f + ". Kat");
+						//setTimeout(function(){ fn_ElevatorGetFloor(f, elvtr); }, elevator[elvtr].transition);
+						fn_ElevatorGetFloor(f, elvtr);
+					}
+				}
+			}
+			
+			function fn_ElevatorGetFloor(thisFloor, elvtr){
+				var elevator_inside = [];
+				elevator[elvtr].floor = thisFloor;
+				elevator_inside = elevator[elvtr].inside;
+				var floorperson = 0;
+				if(elevator_inside[thisFloor][1] > 0){
+					for(var p = 0; p < person.length; p++){
+						if(person[p].destination == thisFloor && person[p].situation == "In Elevator"){
+							floorperson++;
+							person[p].situation = "On Floor";
+							person[p].floor = thisFloor;
+							elevator[elvtr].inside[thisFloor][1] -= 1;
+							elevator[elvtr].count_inside -= 1;
+							switch(thisFloor){
+								case 0: avm.floor0 += 1; break;
+								case 1: avm.floor1 += 1; break;
+								case 2: avm.floor2 += 1; break;
+								case 3: avm.floor3 += 1; break;
+								case 4: avm.floor4 += 1; break;
+							}
+						}
+					}
+					if(floorperson > 0){ReportIt((elvtr + 1) + ". Asansörden " + floorperson + " Kişi " + thisFloor +". Katta İndirildi.");}
+				}
+				
+				if(elevator[elvtr].count_inside == 0){
+					fn_FullTheElevator(elvtr);
+				}
+			}
+			
+			function fn_FullTheElevator(elevtr){
+				QueueSortList = [avm.queue0, avm.queue1, avm.queue2, avm.queue3, avm.queue4];
+				var elevatorsFloor = elevator[elevtr].floor;
+				var avmQueue = QueueSortList[elevatorsFloor];
+				var elev_emptycnt = (elevator[elevtr].capacity - elevator[elevtr].count_inside);
+				if(avmQueue > 0){
+					if(avmQueue <= elev_emptycnt){
+						elevator[elevtr].count_inside += avmQueue;
+						switch(elevatorsFloor){
+							case 0: avm.queue0 = 0; avm.floor0 -= avmQueue; break;
+							case 1: avm.queue1 = 0; avm.floor1 -= avmQueue; break;
+							case 2: avm.queue2 = 0; avm.floor2 -= avmQueue; break;
+							case 3: avm.queue3 = 0; avm.floor3 -= avmQueue; break;
+							case 4: avm.queue4 = 0; avm.floor4 -= avmQueue; break;
+						}
+					}
+					else{
+						var stayqueuep = avmQueue - elev_emptycnt;
+						elevator[elevtr].count_inside = elevator[elevtr].capacity;
+						switch(elevatorsFloor){
+							case 0: avm.queue0 = stayqueuep; avm.floor0 -= elev_emptycnt; break;
+							case 1: avm.queue1 = stayqueuep; avm.floor1 -= elev_emptycnt; break;
+							case 2: avm.queue2 = stayqueuep; avm.floor2 -= elev_emptycnt; break;
+							case 3: avm.queue3 = stayqueuep; avm.floor3 -= elev_emptycnt; break;
+							case 4: avm.queue4 = stayqueuep; avm.floor4 -= elev_emptycnt; break;
+						}
+					}
+								
+					var DestinationList = new Array();
+					var DestF0 = 0,DestF1 = 0,DestF2 = 0,DestF3 = 0,DestF4 = 0;
+					var getelevtrprsn=0;
+					for(var p = 0; p < person.length; p++){
+						if(getelevtrprsn == elev_emptycnt){ break; }
+						if(person[p].floor == elevator[elevtr].floor && person[p].situation == "queue"){
+							person[p].situation = "In Elevator";
+							switch(person[p].destination){
+								case 0: DestF0++; break;
+								case 1: DestF1++; break;
+								case 2: DestF2++; break;
+								case 3: DestF3++; break;
+								case 4: DestF4++; break;
+							}
+							getelevtrprsn++;
+						}
+					}
+					
+					if(getelevtrprsn > 0){ReportIt(elevator[elevtr].floor + ". Kattan "+ getelevtrprsn +" Kişi Asansöre Bindi");}
+					
+					DestinationList[0] = new Array(0, DestF0);
+					DestinationList[1] = new Array(1, DestF1);
+					DestinationList[2] = new Array(2, DestF2);
+					DestinationList[3] = new Array(3, DestF3);
+					DestinationList[4] = new Array(4, DestF4);
+					
+					elevator[elevtr].inside = DestinationList;
+				}
+				if(elevatorsFloor == 4){
+					fn_ElevatorMove(elevtr);
+				}
+			}
+			
+			function Elevator_ThreadRuner(activeElevator){
+				Elevator_Thread1();
+				activeElevator--;
+				if(activeElevator > 0){
+					Elevator_Thread2();
+					activeElevator--;
+				}
+				if(activeElevator > 0){
+					Elevator_Thread3();
+					activeElevator--;
+				}
+				if(activeElevator > 0){
+					Elevator_Thread4();
+					activeElevator--;
+				}
+				if(activeElevator > 0){
+					Elevator_Thread5();
+				}
+			}
+			
+			function Kontrol_Thread(){
+				var totalQueue = 0;
+				var activeElevator = 0;
+				for(var i = 0; i < 5; i++){
+					totalQueue += QueueSortList[i];
+					if(elevator[i].mode == "active"){
+						activeElevator++;
+					}
+				}
+				
+				if(totalQueue > (10 * 2 * activeElevator) && activeElevator < 5){
+					elevator[activeElevator].mode = "active";
+					activeElevator++;
+					ReportIt("Bir Asansör Devreye Girdi Toplam Asansör : " + activeElevator);
+				}
+				
+				if(totalQueue < (10 * 2 * activeElevator) && activeElevator > 1){
+					elevator[(activeElevator - 1)].mode = "pasive";
+					activeElevator--;
+					ReportIt("Bir Asansör Devreden Çıkarıldı Toplam Asansör : " + activeElevator);
+				}
+				
+				Elevator_ThreadRuner(activeElevator);
+			}
+			
+			function Rndm(limit, pls){
+				return Math.floor(Math.random() * limit) + pls;
+			}
+			
+			function id(getid){
+				return document.getElementById(getid);
+			}
+			
+			function ReportIt(report){
+				id('dv_ReportList').innerHTML += "<br/>" + report;
+			}
+			
+			function fn_Finish(){
+				clearInterval(time1);
+				clearInterval(time2);
+				
+				var htm = "<div style='display:table; padding:15px;'><h1>Sonuç</h1><br/>Giriş kat bekleyen kişi "+avm.queue0+
+				"<br/>1. kat bekleyen kişi "+avm.queue1+
+				"<br/>2. kat bekleyen kişi "+avm.queue2+
+				"<br/>3. kat bekleyen kişi "+avm.queue3+
+				"<br/>4. kat bekleyen kişi "+avm.queue4+
+				"<br/>"+
+				"<br/>Asansör 1"+
+				"<br/>Durum :"+elevator[0].mode+
+				"<br/>Kapasite :"+elevator[0].capacity+
+				"<br/>Bulunduğu Kat :"+elevator[0].floor+
+				"<br/>Yön :"+elevator[0].direction+
+				"<br/>Asansördeki kişi sayısı :"+elevator[0].count_inside+
+				"<br/>"+
+				"<br/>Asansör 2"+
+				"<br/>Durum : "+elevator[1].mode+
+				"<br/>Kapasite :"+elevator[1].capacity+
+				"<br/>Bulunduğu Kat :"+elevator[1].floor+
+				"<br/>Yön :"+elevator[1].direction+
+				"<br/>Asansördeki kişi sayısı :"+elevator[1].count_inside+
+				"<br/>"+
+				"<br/>Asansör 3"+
+				"<br/>Durum :"+elevator[2].mode+
+				"<br/>Kapasite :"+elevator[2].capacity+
+				"<br/>Bulunduğu Kat :"+elevator[2].floor+
+				"<br/>Yön :"+elevator[2].direction+
+				"<br/>Asansördeki kişi sayısı :"+elevator[2].count_inside+
+				"<br/>"+
+				"<br/>Asansör 4"+
+				"<br/>Durum :"+elevator[3].mode+
+				"<br/>Kapasite :"+elevator[3].capacity+
+				"<br/>Bulunduğu Kat :"+elevator[3].floor+
+				"<br/>Yön :"+elevator[3].direction+
+				"<br/>Asansördeki kişi sayısı :"+elevator[3].count_inside+
+				"<br/>"+
+				"<br/>Asansör 5"+
+				"<br/>Durum :"+elevator[4].mode+
+				"<br/>Kapasite :"+elevator[4].capacity+
+				"<br/>Bulunduğu Kat :"+elevator[4].floor+
+				"<br/>Yön :"+elevator[4].direction+
+				"<br/>Asansördeki kişi sayısı :"+elevator[4].count_inside+"</div>";
+				id('dv_ReportList').innerHTML +=htm;
+				id('StpNrun').setAttribute("onclick","Start()");
+				id('StpNrun').value="Devam Et";
+			}
+		</script>
+	</head>
+	<body>
+		<div id="dv_ReportList"></div>
+		<input type="Button" onclick="fn_Finish()" id="StpNrun" value="Sonucu Göster" />
+		<script type="text/javascript">Start();</script>
+	</body>
+</html>
